@@ -2,13 +2,13 @@
 
 ## Overview
 
-This project analyzes customer purchasing behavior and develops a regression model to predict purchase amount based on demographic and behavioral characteristics.
+This project analyzes customer purchasing behavior and develops a multiple linear regression model to predict purchase amount based on demographic and behavioral characteristics.
 
-The analysis combines exploratory data analysis, statistical analysis, feature engineering, and multiple linear regression to identify the factors most associated with customer spending.
+The analysis combines exploratory data analysis, statistical analysis, feature engineering, and regression modeling to identify the factors most associated with customer spending.
 
 ## Business Question
 
-What customer characteristics are most strongly associated with purchase amount, and how can these insights support marketing decisions?
+**What customer characteristics are most strongly associated with purchase amount, and how can these insights support marketing decisions?**
 
 ## Objectives
 
@@ -19,17 +19,29 @@ What customer characteristics are most strongly associated with purchase amount,
 
 ## Analysis
 
-The analysis includes:
+The project includes:
 
-- Data cleaning and preparation
 - Exploratory data analysis
-- Descriptive statistics
 - Correlation analysis
 - Feature engineering
 - Multiple linear regression
 - Model evaluation
-- Interpretation of statistical results
+- Statistical interpretation
 - Business recommendations
+
+### Key Visualizations
+
+**Purchase Amount vs. Income**
+
+![Purchase Amount vs Income](images/Purchase%20Amount%20vs%20Income.png)
+
+The relationship between customer income and purchase amount, with the fitted regression line.
+
+**Model Diagnostics — Residuals vs. Fitted**
+
+![Residuals vs Fitted](images/Residuals%20vs%20Fitted.png)
+
+Residual diagnostics used to assess the performance and assumptions of the regression model.
 
 ## Key Insights
 
@@ -54,10 +66,4 @@ The findings can support marketing teams in:
 
 ## Tools
 
-- R
-- RStudio
-- tidyverse
-- ggplot2
-- dplyr
-- readxl
-- Multiple Linear Regression
+R · RStudio · tidyverse · ggplot2 · dplyr · readxl · Multiple Linear Regression
