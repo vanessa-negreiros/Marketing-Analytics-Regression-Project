@@ -1,0 +1,3 @@
+"0",""
+"0","# Q-Q Plot"
+"0","plot(refined_model, which = 2)"

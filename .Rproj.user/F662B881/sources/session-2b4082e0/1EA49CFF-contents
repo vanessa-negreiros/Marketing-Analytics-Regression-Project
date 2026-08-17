@@ -1,0 +1,463 @@
+---
+title: "Marketing Analytics Regression Project"
+author: "Vanessa Gozdziuk de Negreiros"
+date: "`r Sys.Date()`"
+
+output:
+
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    toc_depth: 3
+    number_sections: true
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+```{r}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+# Business Problem
+
+The objective of this project is to identify the factors that influence customer purchase amounts using multiple linear regression. Understanding these relationships can help organizations improve marketing strategies, optimize promotional efforts, and better understand customer purchasing behavior.
+
+
+# Data Understanding
+
+## Load Libraries
+
+Load the packages required for data import, visualization, statistical analysis, and regression modeling.
+
+````{r}
+library(tidyverse)
+library(readxl)
+library(corrplot)
+library(car)
+library(lmtest)
+library(knitr)
+````
+
+## Import Dataset
+
+Import the dataset and create the main data frame for the analysis.
+
+```{r}
+marketing <- read_excel("../data/DAMO_520-Assignment 2.xlsx")
+```
+
+## Initial Data Exploration
+
+Examine the dataset structure, variable types, descriptive statistics, and missing values to assess data quality before the exploratory analysis.
+
+```{r}
+
+# Display the structure of the dataset
+str(marketing)
+
+# Display a compact overview
+glimpse(marketing)
+
+# Generate descriptive statistics
+summary(marketing)
+
+# Check for missing values
+colSums(is.na(marketing))
+```
+**Key Findings**
+
+The dataset contains 5,000 observations and 15 variables, with no missing values. Most variables are numerical, while Gender and Region are categorical. PurchaseAmount was selected as the response variable because it is a continuous variable and aligns with the objective of identifying the factors that influence customer spending.
+
+
+# Exploratory Data Analysis
+
+Explore the relationships between the response variable and the candidate predictors to support the selection of variables for the regression models.
+
+## Correlation Analysis
+
+Examine the linear relationships among the numerical variables and identify the predictors most strongly associated with PurchaseAmount.
+
+```{r}
+
+# Select numeric variables
+numeric_data <- marketing %>%
+  select(-CustomerID) %>%
+  select(where(is.numeric))
+
+# Compute the correlation matrix
+cor_matrix <- cor(numeric_data)
+
+# Display correlation coefficients
+round(cor_matrix, 2)
+
+# Visualize the correlation matrix
+corrplot(
+  cor_matrix,
+  method = "color",
+  type = "upper",
+  addCoef.col = "black",
+  tl.col = "black",
+  tl.cex = 0.8,
+  number.cex = 0.6,
+  diag = FALSE
+)
+```
+**Key Findings**
+
+Income, PromoUsed, PagesViewed, and WebsiteVisits showed the strongest positive correlations with PurchaseAmount. Although SatisfactionScore exhibited a weak linear correlation, it was retained for further investigation due to its business relevance. The low correlations among the predictors also suggest a low risk of multicollinearity.
+
+## Relationship Between PurchaseAmount and Candidate Predictors
+
+Visually examine the relationships between PurchaseAmount and the candidate predictors to assess whether they exhibit patterns consistent with linear regression.
+
+```{r}
+
+# Relationship Between Income and PurchaseAmount
+
+ggplot(marketing, aes(x = Income, y = PurchaseAmount)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(
+    title = "Purchase Amount vs Income",
+    x = "Income",
+    y = "Purchase Amount"
+  ) +
+  theme_minimal()
+
+# Relationship Between Website Visits and PurchaseAmount
+
+ggplot(marketing, aes(x = WebsiteVisits, y = PurchaseAmount)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(
+    title = "Purchase Amount vs Website Visits",
+    x = "Website Visits",
+    y = "Purchase Amount"
+  ) +
+  theme_minimal()
+
+# Relationship Between Pages Viewed and PurchaseAmount
+
+ggplot(marketing, aes(x = PagesViewed, y = PurchaseAmount)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(
+    title = "Purchase Amount vs Pages Viewed",
+    x = "Pages Viewed",
+    y = "Purchase Amount"
+  ) +
+  theme_minimal()
+
+# Relationship Between Satisfaction Score and PurchaseAmount
+
+ggplot(marketing, aes(x = SatisfactionScore, y = PurchaseAmount)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(
+    title = "Purchase Amount vs Satisfaction Score",
+    x = "Satisfaction Score",
+    y = "Purchase Amount"
+  ) +
+  theme_minimal()
+
+# PurchaseAmount by Promotion Usage
+
+ggplot(marketing,
+       aes(x = factor(PromoUsed),
+           y = PurchaseAmount)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(
+    title = "Purchase Amount by Promotion Usage",
+    x = "Promotion Used",
+    y = "Purchase Amount"
+  ) +
+  theme_minimal()
+```
+**Key Findings**
+
+The visual analysis supported the correlation results. Income, PromoUsed, PagesViewed, and WebsiteVisits exhibited positive relationships with PurchaseAmount, although the strength of these relationships varied. In contrast, SatisfactionScore showed no clear linear pattern, suggesting a limited direct association with customer spending.
+
+## Summary of Exploratory Findings
+
+Summarize the main findings from the exploratory analysis and justify the modeling approach.
+
+**Key Findings**
+
+The exploratory analysis identified positive relationships between PurchaseAmount and Income, PromoUsed, PagesViewed, and WebsiteVisits, while SatisfactionScore showed no clear linear association. Since the response variable is continuous and the relationships with the main predictors are approximately linear, multiple linear regression was selected as the appropriate modeling approach. The candidate predictors will be further evaluated during model development.
+
+
+
+# Model Development
+
+Develop and compare multiple linear regression models to identify the combination of predictors that best explains customer purchase amount.
+
+## Baseline Model
+
+Develop a simple linear regression model using the strongest individual predictor identified during the exploratory analysis.
+
+**Model Equation**
+
+$$
+\text{PurchaseAmount} = \beta_0 + \beta_1 \times \text{Income}
+$$
+
+```{r}
+
+# Fit the baseline regression model
+baseline_model <- lm(
+  PurchaseAmount ~ Income,
+  data = marketing
+)
+
+# Display model summary
+summary(baseline_model)
+
+# Calculate confidence intervals
+confint(baseline_model)
+
+# Model selection criteria
+AIC(baseline_model)
+BIC(baseline_model)
+```
+**Key Findings**
+
+Income was selected as the predictor for the baseline model because it showed the strongest linear relationship with PurchaseAmount during the exploratory analysis (r = 0.58). The model was statistically significant (p < 0.001) and explained approximately 34.0% of the variability in customer spending. Although this provides a useful starting point, the relatively modest explanatory power suggests that additional predictors may improve model performance.
+
+
+## Multiple Regression Model
+
+Develop a multiple linear regression model including all candidate predictors identified during the exploratory analysis.
+
+**Model Equation**
+
+$$
+\text{PurchaseAmount}
+=
+\beta_0
++
+\beta_1 \times \text{Income}
++
+\beta_2 \times \text{WebsiteVisits}
++
+\beta_3 \times \text{PagesViewed}
++
+\beta_4 \times \text{PromoUsed}
++
+\beta_5 \times \text{SatisfactionScore}
+$$
+```{r}
+
+# Fit the multiple regression model
+multiple_model <- lm(
+  PurchaseAmount ~ Income +
+    WebsiteVisits +
+    PagesViewed +
+    PromoUsed +
+    SatisfactionScore,
+  data = marketing
+)
+
+# Display model summary
+summary(multiple_model)
+
+# Calculate confidence intervals
+confint(multiple_model)
+
+# Model selection criteria
+AIC(multiple_model)
+BIC(multiple_model)
+```
+**Key Findings**
+
+The multiple regression model substantially improved the model performance compared with the baseline model. The explained variance increased from 34.0% to 77.7%, indicating that customer spending is better explained when demographic and behavioral variables are considered together. Among the candidate predictors, SatisfactionScore was the only variable that was not statistically significant (p = 0.601), making it the first candidate for removal during model refinement.
+
+## Refined Regression Model
+
+Refine the multiple regression model by removing non-significant predictors while maintaining model performance.
+
+**Model Equation**
+
+$$
+\text{PurchaseAmount}
+=
+\beta_0
++
+\beta_1 \times \text{Income}
++
+\beta_2 \times \text{WebsiteVisits}
++
+\beta_3 \times \text{PagesViewed}
++
+\beta_4 \times \text{PromoUsed}
+$$
+
+```{r}
+
+# Fit the refined regression model
+refined_model <- lm(
+  PurchaseAmount ~ Income +
+    WebsiteVisits +
+    PagesViewed +
+    PromoUsed,
+  data = marketing
+)
+
+# Display model summary
+summary(refined_model)
+
+# Calculate confidence intervals
+confint(refined_model)
+
+# Model selection criteria
+AIC(refined_model)
+BIC(refined_model)
+```
+**Key Findings**
+
+Removing SatisfactionScore simplified the regression model without reducing its explanatory power. The refined model maintained the same goodness of fit while achieving lower AIC and BIC values, indicating a more parsimonious model. Since all remaining predictors were statistically significant (p < 0.001), this model was selected as the final regression model.
+
+## Model Comparison
+
+Compare the regression models using goodness-of-fit and model selection criteria to identify the preferred model.
+
+| Metric | Baseline | Multiple | Refined |
+|:-------|---------:|---------:|--------:|
+| Predictors | 1 | 5 | 4 |
+| Multiple R² | 0.3399 | 0.7769 | 0.7769 |
+| Adjusted R² | 0.3398 | 0.7767 | 0.7767 |
+| Residual Std. Error | 17.43 | 10.13 | 10.13 |
+| AIC | 42772.86 | 37356.49 | **37354.76** |
+| BIC | 42792.42 | 37402.11 | **37393.87** |
+
+**Key Findings**
+
+The baseline model established a useful benchmark, explaining 34.0% of the variation in PurchaseAmount using Income alone. Adding behavioral variables substantially improved the model, increasing the explained variance to 77.7%. Removing the non-significant predictor (SatisfactionScore) reduced model complexity while maintaining the same predictive performance and improving both AIC and BIC. Therefore, the refined regression model was selected as the final model for subsequent analysis.
+
+
+# Model Diagnostics
+
+Evaluate whether the final regression model satisfies the key assumptions of multiple linear regression.
+
+## Linearity
+
+Assess whether the relationship between the predictors and the response variable is approximately linear.
+
+```{r}
+
+library(car)
+
+# Residuals vs Fitted Values
+plot(refined_model, which = 1)
+
+# Component + Residual (Partial Residual) Plots
+crPlots(refined_model)
+```
+**Key Findings**
+
+The Residuals vs Fitted plot showed residuals randomly scattered around zero with no systematic pattern, supporting the assumption of linearity for the model as a whole. The Component + Residual plots indicated approximately linear relationships for each retained predictor (Income, WebsiteVisits, PagesViewed, and PromoUsed). Therefore, no substantial evidence of non-linearity was observed, and no corrective action was required.
+
+## Normality of Residuals
+
+Assess whether the residuals of the final regression model are approximately normally distributed.
+
+```{r}
+
+# Histogram of residuals
+hist(
+  residuals(refined_model),
+  breaks = 30,
+  main = "Histogram of Residuals",
+  xlab = "Residuals",
+  col = "lightblue",
+  border = "white"
+)
+
+# Q-Q Plot
+plot(refined_model, which = 2)
+
+# Shapiro-Wilk Test
+shapiro.test(residuals(refined_model))
+```
+**Key Findings**
+
+The histogram and Q-Q plot indicated that the residuals were approximately normally distributed, with only minor deviations in the tails. The Shapiro-Wilk test also failed to reject the null hypothesis of normality (W = 0.9997, p = 0.7172), providing additional statistical evidence that the residuals follow a normal distribution. Therefore, the normality assumption was considered satisfied, and no corrective action was required.
+
+## Homoscedasticity
+
+Assess whether the residuals exhibit constant variance across the range of fitted values.
+
+```{r}
+library(lmtest)
+
+# Scale-Location Plot
+plot(refined_model, which = 3)
+
+# Breusch-Pagan Test
+bptest(refined_model)
+```
+**Key Findings**
+
+The Scale-Location plot showed a relatively constant spread of residuals across the fitted values, with no evidence of a funnel-shaped pattern. The Breusch–Pagan test also failed to detect heteroscedasticity (BP = 2.38, p = 0.6663). Together, these results indicate that the homoscedasticity assumption was satisfied, and no corrective action was required.
+
+## Multicollinearity
+
+Assess whether the independent variables are highly correlated with one another, which could affect the stability of the regression coefficients.
+
+```{r}
+library(car)
+
+vif(refined_model)
+```
+**Key Findings**
+
+The Variance Inflation Factor (VIF) values for all retained predictors were approximately equal to 1, indicating virtually no multicollinearity. This suggests that each predictor contributes unique information to the model, resulting in stable coefficient estimates and reliable statistical inference. Therefore, no corrective action was required.
+
+## Influential Observations (Cook's Distance)
+
+Identify observations that exert an unusually large influence on the estimated regression model.
+
+```{r}
+
+plot(refined_model, which = 5)
+
+cook <- cooks.distance(refined_model)
+
+threshold <- 4 / nrow(marketing)
+
+cat("Cook's Distance threshold:", round(threshold, 5), "\n")
+cat("Maximum Cook's Distance:", round(max(cook), 5), "\n")
+cat("Potentially influential observations:", sum(cook > threshold), "\n")
+```
+**Key Findings**
+
+The Cook's Distance analysis identified 255 observations above the conservative screening threshold (4/n). However, the largest Cook's Distance was only 0.0038, indicating that no individual observation exerted excessive influence on the regression model. Therefore, all observations were retained, and no corrective action was required.
+
+## Diagnostic Summary
+
+Summarize the results of the regression diagnostic tests and assess whether the final model satisfies the assumptions of multiple linear regression.
+
+| Assumption               | Diagnostic Method                                 | Result                          | Action Required |
+| ------------------------ | ------------------------------------------------- | ------------------------------- | --------------- |
+| Linearity                | Residuals vs. Fitted & Component + Residual Plots | Satisfied                       | No              |
+| Normality                | Histogram, Q-Q Plot & Shapiro-Wilk Test           | Satisfied                       | No              |
+| Homoscedasticity         | Scale-Location Plot & Breusch-Pagan Test          | Satisfied                       | No              |
+| Multicollinearity        | Variance Inflation Factor (VIF)                   | Not detected                    | No              |
+| Influential Observations | Cook's Distance                                   | No excessive influence detected | No              |
+
+**Key Findings**
+
+The final regression model satisfied all major assumptions of multiple linear regression. Diagnostic plots and statistical tests supported the adequacy of the model, indicating linear relationships, approximately normal residuals, constant variance, no evidence of multicollinearity, and no excessively influential observations. The refined regression model was therefore retained as the final model for interpretation.
+
+# Conclusion
+
+This notebook documented the complete regression modeling process, including exploratory data analysis, model development, model comparison, and diagnostic assessment. Based on statistical performance and diagnostic validation, the refined multiple linear regression model was selected as the final model. The interpretation of the regression coefficients, business implications, limitations, and recommendations are presented in the accompanying report.
+
+**Next Step**
+
+The accompanying report builds upon this technical analysis by interpreting the final regression model in a marketing context, discussing business implications, limitations, and opportunities for future improvement.
